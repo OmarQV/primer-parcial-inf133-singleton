@@ -1,16 +1,17 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
 import random
+from urllib import parse as urlparse
 
+# guess -> adivinar
 class Game:
    _instance = None
-   
    games = {}
-   
    def __new__(cls):
       if not cls._instance:
          cls._instance = super().__new__(cls)
 
+         
    # Crear una partida
    def create_game(self, player):
       game_id = len(self.games) + 1
@@ -25,6 +26,7 @@ class Game:
       return new_game
    
    # Listar todas las partidas
+   
    def list_games(self):
       return self.games
    
@@ -38,6 +40,7 @@ class Game:
          if game["player"] == player:
             return game_id
       return None   
+   
    # Actualizar los intentos de una partida
    def update_attempts(self, game_id, attempt):
       game = self.games.get(game_id)
@@ -47,9 +50,9 @@ class Game:
                game["status"] = "Finalizado"
                return {"message": "Felicitaciones!!! Has adivinado el número"}
          elif attempt < game["number"]:
-               return {"message": "El número a adivinar es mayor"}
+               return {"message": "El número a adivinar es Mayor"}
          else:
-               return {"message": "El número a adivinar es menor"}
+               return {"message": "El número a adivinar es Menor"}
       else:
          return {"message": "Partida no encontrada"}
    # Eliminar una partida
@@ -77,15 +80,19 @@ class HTTPDataHandler(BaseHTTPRequestHandler):
 
 
 class GameHandler(BaseHTTPRequestHandler):
+   game = Game()
    def do_POST(self):
       if self.path == "/guess":
          data = HTTPDataHandler.handler_reader(self)
-         new_game = self.game.create_game(data["player"])
+         new_game = self.game.create_game(data)
          HTTPDataHandler.handler_response(self, 200, new_game)
 
    def do_GET(self):
+      parsed_path = urlparse.urlparse(self.path)
+      query_params = urlparse.parse_qs(parsed_path.query)
+      
       if self.path == "/guess":
-         all_games = self.game.list_games()
+         all_games = self.game.list_games(self)
          HTTPDataHandler.handler_response(self, 200, all_games)
       elif self.path.startswith("/guess/"):
          game_id = int(self.path.split("/")[-1])
@@ -109,7 +116,7 @@ class GameHandler(BaseHTTPRequestHandler):
          result = self.game.update_attempts(game_id, int(data["attempt"]))
          HTTPDataHandler.handler_response(self, 200, result)
 
-    def do_DELETE(self):
+   def do_DELETE(self):
       if self.path.startswith("/guess/"):
          game_id = int(self.path.split("/")[-1])
          result = self.game.delete_game(game_id)
@@ -117,8 +124,6 @@ class GameHandler(BaseHTTPRequestHandler):
 
 
 def run_server(port=8000):
-   global player
-   player = Player("Alice")
    
    try:
       server_address = ("", port)

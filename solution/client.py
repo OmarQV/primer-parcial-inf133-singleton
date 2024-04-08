@@ -5,9 +5,15 @@ url = "http://localhost:8000/"
 # Crear una partida
 print("\n----------- POST ---------")
 
+new_player = {
+    "player": "julian"
+}
+response = requests.post(url + "guess", json=new_player)
+print("Respuesta del servidor:")
+print(response.text)
 # Listar todas las partidas
 print("\n----------- GET ---------")
-response = requests.request(method="GET", url=url + "guess")
+response = requests.get(url=url + "guess")
 print(response.text)
 
 # Buscar una partida por su id
